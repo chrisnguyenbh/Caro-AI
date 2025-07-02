@@ -83,7 +83,6 @@ function count(x, y, dx, dy) {
   return count;
 }
 
-// Sự kiện nút "Chơi lại"
 document.getElementById("reset").addEventListener("click", () => {
   initGame();
 });
