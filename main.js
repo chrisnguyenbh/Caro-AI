@@ -72,8 +72,8 @@ canvas.addEventListener("click", (e) => {
       document.getElementById("status").textContent = "Người thắng: " + turn;
     } else {
       turn = turn === "X" ? "O" : "X";
-      if (aiMode.checked && turn === "O" && !winner) {
-        setTimeout(aiPlay, 300);
+      if (aiMode.checked && !winner) {
+  setTimeout(aiPlay, 300);
       }
     }
   }
