@@ -83,8 +83,25 @@ function count(x, y, dx, dy) {
   return count;
 }
 
-document.getElementById("reset").addEventListener("click", () => {
-  initGame();
+document.getElementById("reset").canvas.addEventListener("click", function (e) {
+  if (winner) return; // Nếu đã có người thắng, không làm gì
+
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / size);
+  const y = Math.floor((e.clientY - rect.top) / size);
+
+  if (!board[y][x]) {
+    board[y][x] = turn;
+    drawBoard();
+
+    if (checkWin(x, y)) {
+      winner = turn;
+      document.getElementById("status").innerText = `Người chơi ${turn} thắng!`;
+    } else {
+      turn = turn === "X" ? "O" : "X"; // Đổi lượt
+    }
+  }
+});
 });
 
 initGame();
