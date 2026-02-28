@@ -1,21 +1,46 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Cờ Ca Rô</title>
-  <style>
-    canvas { border: 1px solid black; }
-    #reset { margin-top: 10px; padding: 5px 10px; }
-  </style>
+<meta charset="UTF-8">
+<title>Cờ Ca Rô</title>
+
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script>
+  Pi.init({ 
+    version: "2.0",
+    sandbox: true   // TEST trước, xong thì xóa sandbox
+  });
+
+  async function loginWithPi() {
+    try {
+      const scopes = ['username'];
+      const authResult = await Pi.authenticate(scopes);
+      document.getElementById("user").innerText =
+        "Xin chào: " + authResult.user.username;
+    } catch (err) {
+      console.error(err);
+    }
+  }
+</script>
+
+<style>
+canvas { border: 1px solid black; }
+#reset { margin-top: 10px; padding: 5px; }
+</style>
 </head>
+
 <body>
-  <h1>Cờ Ca Rô</h1>
-  <canvas id="caro" width="600" height="600"></canvas>
-  <br>
-  <button id="reset">Chơi lại</button>
-  <label><input type="checkbox" id="aiMode"> Chơi với AI</label>
-  <p id="status"></p>
-  <script src="main.js"></script>
+<h1>Cờ Ca Rô</h1>
+
+<button onclick="loginWithPi()">Login with Pi</button>
+<p id="user"></p>
+
+<canvas id="caro" width="600" height="600"></canvas>
+<br>
+<button id="reset">Chơi Lại</button>
+<label><input type="checkbox" id="aiMode"> Chơi với AI</label>
+<p id="status"></p>
+
+<script src="main.js"></script>
 </body>
 </html>
