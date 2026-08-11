@@ -12,7 +12,7 @@
 </section>
 <section class="panel game-card"><canvas id="c" width="720" height="720" style="width:100%;border-radius:50%;background:#12051d"></canvas>
 <div style="display:flex;gap:8px;margin-top:10px"><button class="btn secondary" id="pause" style="flex:1">Tạm dừng</button><button class="btn" id="restart" style="flex:1">Chơi lại</button></div>
-<div class="help">Chạm/kéo để ngắm, thả để bắn. Bắn trúng bóng cùng màu để tăng combo.</div></section>
+<div class="help">Chạm vào hướng muốn bắn. Phá bóng cùng màu để tăng combo. Level đầu đã được giảm tốc cho dễ làm quen.</div></section>
 
 </main><script>
 const c=document.getElementById('c'),x=c.getContext('2d'),W=c.width,H=c.height,CX=W/2,CY=H/2;
@@ -21,11 +21,11 @@ let level=1,score=0,combo=1,targets=[],bullets=[],parts=[],angle=-Math.PI/2,cur=
 const lv=document.getElementById('lv'),sc=document.getElementById('sc'),rm=document.getElementById('rm'),cb=document.getElementById('cb');
 function rc(){return COLORS[Math.floor(Math.random()*COLORS.length)]}
 function hud(){lv.textContent=level;sc.textContent=score;rm.textContent=targets.filter(t=>t.a).length;cb.textContent='x'+combo}
-function init(){targets=[];let n=Math.min(18+(level-1)*2,34);for(let i=0;i<n;i++){let ri=i%3,slot=Math.floor(i/3),pr=Math.ceil(n/3);targets.push({ri,ang:Math.PI*2*slot/pr+ri*.21,sp:(ri%2? -1:1)*(.0045+level*.0003),col:rc(),a:1})}bullets=[];parts=[];cur=pick();next=pick();hud()}
+function init(){targets=[];let n=Math.min(18+(level-1)*2,34);for(let i=0;i<n;i++){let ri=i%3,slot=Math.floor(i/3),pr=Math.ceil(n/3);targets.push({ri,ang:Math.PI*2*slot/pr+ri*.21,sp:(ri%2? -1:1)*(.0032+level*.00022),col:rc(),a:1})}bullets=[];parts=[];cur=pick();next=pick();hud()}
 function pick(){let a=targets.filter(t=>t.a);return a.length?a[Math.floor(Math.random()*a.length)].col:rc()}
 function aim(px,py){let r=c.getBoundingClientRect();angle=Math.atan2((py-r.top)*H/r.height-CY,(px-r.left)*W/r.width-CX)}
 function shoot(){if(paused)return;bullets.push({x:CX,y:CY,vx:Math.cos(angle)*12,vy:Math.sin(angle)*12,col:cur});cur=next;next=pick()}
-c.onpointerdown=e=>{down=true;aim(e.clientX,e.clientY)};c.onpointermove=e=>{if(down)aim(e.clientX,e.clientY)};c.onpointerup=e=>{if(down){down=false;aim(e.clientX,e.clientY);shoot()}};
+c.onpointerdown=e=>{aim(e.clientX,e.clientY);shoot()};
 function boom(px,py,col){for(let i=0;i<18;i++){let a=Math.random()*6.28,s=2+Math.random()*5;parts.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,col,al:1})}}
 function upd(){if(paused)return;for(const t of targets)if(t.a)t.ang+=t.sp;
 outer:for(let i=bullets.length-1;i>=0;i--){let b=bullets[i];b.x+=b.vx;b.y+=b.vy;for(const t of targets){if(!t.a)continue;let tx=CX+Math.cos(t.ang)*R[t.ri],ty=CY+Math.sin(t.ang)*R[t.ri];if(Math.hypot(b.x-tx,b.y-ty)<34){if(b.col===t.col){t.a=0;score+=30*combo;combo=Math.min(9,combo+1);boom(tx,ty,t.col)}else combo=1;bullets.splice(i,1);hud();if(!targets.some(q=>q.a)){score+=250*level;level++;init()}continue outer}}if(b.x<0||b.x>W||b.y<0||b.y>H){bullets.splice(i,1);combo=1;hud()}}

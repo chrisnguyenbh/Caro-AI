@@ -7,7 +7,7 @@
 <section class="hud"><div class="stat"><small>SCORE</small><strong id="sc">0</strong></div><div class="stat"><small>HIGH</small><strong id="hi">0</strong></div><div class="stat"><small>SHOTS</small><strong id="shots">0</strong></div><div class="stat"><small>NEXT</small><strong id="nxt">●</strong></div></section>
 <section class="panel game-card"><canvas id="c" width="420" height="620" style="width:100%;border-radius:16px;background:#0b0611"></canvas>
 <div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="restart" style="flex:1">Chơi lại</button></div>
-<div class="help">Chạm phía trên để ngắm. Ghép từ 3 bóng cùng màu trở lên để làm nổ cụm bóng.</div></section>
+<div class="help">Chạm nơi muốn bắn. Đường ngắm giúp căn hướng; va chạm được nới rộng để chơi trên điện thoại dễ hơn.</div></section>
 
 </main><script>
 const c=document.getElementById('c'),x=c.getContext('2d'),COL=['#ff5c6c','#58d9ff','#ffe15a','#b966ff','#54e39b'];
@@ -22,10 +22,10 @@ function nearCell(px,py){let best={r:0,q:0,d:1e9};for(let r=0;r<ROW;r++)for(let 
 function neigh(r,q){let ds=r%2?[[0,-1],[0,1],[-1,0],[-1,1],[1,0],[1,1]]:[[0,-1],[0,1],[-1,-1],[-1,0],[1,-1],[1,0]];return ds.map(d=>[r+d[0],q+d[1]]).filter(([a,b])=>a>=0&&a<ROW&&b>=0&&b<COLN)}
 function cluster(r,q,col){let out=[],st=[[r,q]],seen=new Set;while(st.length){let [a,b]=st.pop(),k=a+','+b;if(seen.has(k)||grid[a]?.[b]!==col)continue;seen.add(k);out.push([a,b]);for(const n of neigh(a,b))st.push(n)}return out}
 function attach(px,py,col){let {r,q}=nearCell(px,py);if(grid[r][q]){let opts=neigh(r,q).filter(([a,b])=>!grid[a][b]);if(opts.length){let best=opts[0],bd=1e9;for(const o of opts){let p=pos(...o),d=Math.hypot(px-p.x,py-p.y);if(d<bd){bd=d;best=o}}[r,q]=best}else return}grid[r][q]=col;let cl=cluster(r,q,col);if(cl.length>=3){cl.forEach(([a,b])=>grid[a][b]=null);score+=cl.length*20}}
-function fire(tx,ty){if(bullet)return;let a=Math.atan2(ty-580,tx-210);if(a>-0.15)a=-0.15;if(a<-Math.PI+0.15)a=-Math.PI+0.15;bullet={x:210,y:580,vx:Math.cos(a)*7,vy:Math.sin(a)*7,col:nextColor};nextColor=rc();shots++;hud()}
+function fire(tx,ty){if(bullet)return;let a=Math.atan2(ty-580,tx-210);if(a>-0.15)a=-0.15;if(a<-Math.PI+0.15)a=-Math.PI+0.15;bullet={x:210,y:580,vx:Math.cos(a)*6.2,vy:Math.sin(a)*6.2,col:nextColor};nextColor=rc();shots++;hud()}
 c.onpointerdown=e=>{let r=c.getBoundingClientRect();fire((e.clientX-r.left)*420/r.width,(e.clientY-r.top)*620/r.height)};
 function upd(){if(!bullet)return;bullet.x+=bullet.vx;bullet.y+=bullet.vy;if(bullet.x<R||bullet.x>420-R){bullet.vx*=-1;bullet.x=Math.max(R,Math.min(420-R,bullet.x))}
-let hit=bullet.y<R+8;for(let r=0;r<ROW&&!hit;r++)for(let q=0;q<COLN;q++)if(grid[r][q]){let p=pos(r,q);if(Math.hypot(bullet.x-p.x,bullet.y-p.y)<R*2-2){hit=true;break}}
+let hit=bullet.y<R+8;for(let r=0;r<ROW&&!hit;r++)for(let q=0;q<COLN;q++)if(grid[r][q]){let p=pos(r,q);if(Math.hypot(bullet.x-p.x,bullet.y-p.y)<R*2+5){hit=true;break}}
 if(hit){attach(bullet.x,bullet.y,bullet.col);bullet=null;hud()}}
 function ball(px,py,col){x.save();x.shadowColor=col;x.shadowBlur=10;x.fillStyle=col;x.beginPath();x.arc(px,py,R,0,6.28);x.fill();x.restore()}
 function draw(){x.clearRect(0,0,420,620);for(let r=0;r<ROW;r++)for(let q=0;q<COLN;q++)if(grid[r][q]){let p=pos(r,q);ball(p.x,p.y,grid[r][q])}
