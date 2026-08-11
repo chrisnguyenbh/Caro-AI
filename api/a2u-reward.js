@@ -1,4 +1,15 @@
-import PiNetwork from "pi-backend";
+import PiBackendModule from "pi-backend";
+
+// pi-backend@0.1.3 is CommonJS. On newer Node/Vercel runtimes its
+// default import can be wrapped as { default: PiNetwork }. Resolve both shapes.
+const PiNetwork =
+  typeof PiBackendModule === "function"
+    ? PiBackendModule
+    : PiBackendModule?.default;
+
+if (typeof PiNetwork !== "function") {
+  throw new TypeError("Unable to load PiNetwork constructor from pi-backend");
+}
 
 const PI_ME_URL = "https://api.minepi.com/v2/me";
 const REWARD_KIND = "minigame_a2u_test_reward";

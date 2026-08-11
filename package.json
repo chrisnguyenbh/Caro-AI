@@ -1,10 +1,10 @@
 {
   "name": "minigame-pi-hub",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": "22.x"
   },
   "dependencies": {
     "pi-backend": "0.1.3"
