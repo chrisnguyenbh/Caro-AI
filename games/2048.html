@@ -1,0 +1,27 @@
+<!doctype html><html lang="vi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>2048</title><link rel="stylesheet" href="../assets/common.css">
+</head><body><main class="app-shell">
+<div class="game-head"><a class="back" href="../index.html">← MiniGame</a><div class="game-title">2048</div><div style="width:78px"></div></div>
+
+<section class="hud"><div class="stat"><small>SCORE</small><strong id="sc">0</strong></div><div class="stat"><small>HIGH</small><strong id="hi">0</strong></div><div class="stat"><small>BEST TILE</small><strong id="best">2</strong></div><div class="stat"><small>STATUS</small><strong id="st">PLAY</strong></div></section>
+<section class="panel game-card"><canvas id="c" width="400" height="400" style="width:100%;border-radius:14px;background:#11081a"></canvas>
+<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="restart" style="flex:1">Chơi lại</button></div>
+<div class="help">Vuốt trái/phải/lên/xuống để ghép các ô cùng số. Bàn phím mũi tên cũng hoạt động trên máy tính.</div></section>
+
+</main><script>
+const c=document.getElementById('c'),x=c.getContext('2d'),N=4,G=12,CELL=85,OX=18,OY=18;
+let a,score=0,touch=null,hi=+localStorage.getItem('mg_2048_hi')||0;
+const sc=document.getElementById('sc'),his=document.getElementById('hi'),best=document.getElementById('best'),st=document.getElementById('st');his.textContent=hi;
+function init(){a=Array.from({length:N},()=>Array(N).fill(0));score=0;add();add();hud()}
+function add(){let e=[];for(let r=0;r<N;r++)for(let q=0;q<N;q++)if(!a[r][q])e.push([r,q]);if(e.length){let [r,q]=e[Math.floor(Math.random()*e.length)];a[r][q]=Math.random()<.9?2:4}}
+function merge(row){let v=row.filter(Boolean),o=[];for(let i=0;i<v.length;i++){if(v[i]===v[i+1]){o.push(v[i]*2);score+=v[i]*2;i++}else o.push(v[i])}while(o.length<N)o.push(0);return o}
+function move(dir){let before=JSON.stringify(a);if(dir==='l')a=a.map(merge);if(dir==='r')a=a.map(r=>merge([...r].reverse()).reverse());if(dir==='u'||dir==='d'){for(let q=0;q<N;q++){let col=[];for(let r=0;r<N;r++)col.push(a[r][q]);if(dir==='d')col.reverse();col=merge(col);if(dir==='d')col.reverse();for(let r=0;r<N;r++)a[r][q]=col[r]}}if(JSON.stringify(a)!==before){add();hud()}check()}
+function check(){if(a.flat().includes(2048))st.textContent='2048!';let empty=a.flat().includes(0);let possible=empty;for(let r=0;r<N;r++)for(let q=0;q<N;q++){if(q+1<N&&a[r][q]===a[r][q+1])possible=true;if(r+1<N&&a[r][q]===a[r+1][q])possible=true}if(!possible){st.textContent='OVER';setTimeout(()=>alert('Game Over'),60)}}
+function hud(){sc.textContent=score;best.textContent=Math.max(...a.flat());if(score>hi){hi=score;his.textContent=hi;localStorage.setItem('mg_2048_hi',hi)}}
+function col(v){if(!v)return'rgba(255,255,255,.06)';let h=(Math.log2(v)*33)%360;return `hsl(${h} 75% 58%)`}
+function draw(){x.clearRect(0,0,400,400);for(let r=0;r<N;r++)for(let q=0;q<N;q++){let px=OX+q*(CELL+G),py=OY+r*(CELL+G),v=a[r][q];x.fillStyle=col(v);x.fillRect(px,py,CELL,CELL);if(v){x.fillStyle='#fff';x.font='bold '+(v<100?28:v<1000?24:20)+'px Segoe UI';x.textAlign='center';x.textBaseline='middle';x.fillText(v,px+CELL/2,py+CELL/2)}}requestAnimationFrame(draw)}
+window.onkeydown=e=>{let m={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d'};if(m[e.key]){e.preventDefault();move(m[e.key])}};
+c.onpointerdown=e=>touch={x:e.clientX,y:e.clientY};c.onpointerup=e=>{if(!touch)return;let dx=e.clientX-touch.x,dy=e.clientY-touch.y;move(Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u'));touch=null};
+document.getElementById('restart').onclick=()=>{st.textContent='PLAY';init()};init();draw();
+</script></body></html>

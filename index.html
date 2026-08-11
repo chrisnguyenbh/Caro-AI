@@ -1,45 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>Cờ Ca Rô</title>
-
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c0615"><title>MiniGame Hub</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-<script>
-  Pi.init({ 
-    version: "2.0",
-  });
-
-  async function loginWithPi() {
-    try {
-      const scopes = ['username'];
-      const authResult = await Pi.authenticate(scopes);
-      document.getElementById("user").innerText =
-        "Xin chào: " + authResult.user.username;
-    } catch (err) {
-      console.error(err);
-    }
-  }
-</script>
-
+<link rel="stylesheet" href="assets/common.css">
 <style>
-canvas { border: 1px solid black; }
-#reset { margin-top: 10px; padding: 5px; }
+.hero{padding:18px;margin-bottom:12px}
+.hero h1{margin:0 0 8px;font-size:30px}.hero p{margin:0;color:var(--muted);line-height:1.5}
+.login-row{display:flex;gap:8px;margin-top:14px}.login-row button{flex:1}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.game-link{text-decoration:none;color:inherit;overflow:hidden}
+.cover{height:118px;border-radius:17px 17px 0 0;display:flex;align-items:center;justify-content:center;font-size:52px;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.18),rgba(255,255,255,.02)),linear-gradient(135deg,#35184f,#151020)}
+.game-meta{padding:12px}.game-meta b{display:block;font-size:15px;margin-bottom:4px}.game-meta span{font-size:11px;color:var(--muted);line-height:1.35;display:block}
+.tag{display:inline-block!important;margin-top:7px;padding:4px 7px;border-radius:999px;background:rgba(179,92,255,.14);color:#e6c9ff!important}
+.footer{text-align:center;color:var(--muted);font-size:11px;padding:16px 0 4px}
+@media(max-width:390px){.grid{grid-template-columns:1fr}.cover{height:100px}}
 </style>
 </head>
-
 <body>
-<h1>Cờ Ca Rô</h1>
+<main class="app-shell">
+  <div class="topbar">
+    <div class="brand">MINIGAME</div>
+    <div class="pill" id="piStatus">Pi SDK…</div>
+  </div>
 
-<button onclick="loginWithPi()">Login with Pi</button>
-<p id="user"></p>
+  <section class="panel hero">
+    <h1>Mini Game Hub</h1>
+    <p>5 game HTML5 nhẹ, chạy trực tiếp trên Pi Browser. Mỗi game lưu high score trên thiết bị.</p>
+    <div class="login-row">
+      <button class="btn" id="piLogin">Đăng nhập Pi</button>
+      <button class="btn secondary" id="resetScores">Xóa điểm máy</button>
+    </div>
+  </section>
 
-<canvas id="caro" width="600" height="600"></canvas>
-<br>
-<button id="reset">Chơi Lại</button>
-<label><input type="checkbox" id="aiMode"> Chơi với AI</label>
-<p id="status"></p>
+  <section class="grid">
+    <a class="panel game-link" href="games/core-shooter.html">
+      <div class="cover">🎯</div><div class="game-meta"><b>Elemental Core</b><span>Bắn đúng màu vào các lõi đang xoay.</span><span class="tag">Action</span></div>
+    </a>
+    <a class="panel game-link" href="games/bubble-shooter.html">
+      <div class="cover">🫧</div><div class="game-meta"><b>Bubble Shooter</b><span>Bắn bóng, ghép 3 bóng cùng màu để nổ.</span><span class="tag">Puzzle</span></div>
+    </a>
+    <a class="panel game-link" href="games/maze-chase.html">
+      <div class="cover">👾</div><div class="game-meta"><b>Maze Chase</b><span>Thu thập năng lượng và tránh kẻ săn đuổi.</span><span class="tag">Arcade</span></div>
+    </a>
+    <a class="panel game-link" href="games/block-puzzle.html">
+      <div class="cover">🧩</div><div class="game-meta"><b>Block Puzzle</b><span>Đặt khối, xóa hàng/cột và săn high score.</span><span class="tag">Logic</span></div>
+    </a>
+    <a class="panel game-link" href="games/2048.html">
+      <div class="cover">🔢</div><div class="game-meta"><b>2048</b><span>Vuốt để ghép số và chinh phục ô 2048.</span><span class="tag">Numbers</span></div>
+    </a>
+  </section>
 
-<script src="main.js"></script>
-</body>
-</html>
+  <div class="footer">MiniGame Hub • Pi Sandbox build</div>
+</main>
+<script src="assets/pi.js"></script>
+<script>
+const statusEl=document.getElementById("piStatus"),loginBtn=document.getElementById("piLogin");
+MiniPi.init(statusEl).then(()=>{const u=MiniPi.cachedUsername();if(u){statusEl.textContent="@"+u;loginBtn.textContent="Đăng nhập lại"}});
+loginBtn.onclick=()=>MiniPi.login(statusEl,loginBtn);
+document.getElementById("resetScores").onclick=()=>{
+  if(confirm("Xóa toàn bộ high score của 5 game trên thiết bị này?")){
+    Object.keys(localStorage).filter(k=>k.startsWith("mg_")).forEach(k=>localStorage.removeItem(k));
+    alert("Đã xóa điểm.");
+  }
+};
+</script>
+</body></html>

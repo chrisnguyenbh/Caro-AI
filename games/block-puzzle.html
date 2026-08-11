@@ -1,0 +1,27 @@
+<!doctype html><html lang="vi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Block Puzzle</title><link rel="stylesheet" href="../assets/common.css">
+</head><body><main class="app-shell">
+<div class="game-head"><a class="back" href="../index.html">← MiniGame</a><div class="game-title">Block Puzzle</div><div style="width:78px"></div></div>
+
+<section class="hud"><div class="stat"><small>SCORE</small><strong id="sc">0</strong></div><div class="stat"><small>HIGH</small><strong id="hi">0</strong></div><div class="stat"><small>LINES</small><strong id="lines">0</strong></div><div class="stat"><small>BLOCK</small><strong id="shape">●</strong></div></section>
+<section class="panel game-card"><canvas id="c" width="400" height="500" style="width:100%;border-radius:14px;background:#0a0410"></canvas>
+<button class="btn" id="restart" style="width:100%;margin-top:10px">Chơi lại</button>
+<div class="help">Chạm một ô để đặt khối hiện tại. Xóa hàng hoặc cột đầy để lấy điểm. Nếu khối không còn chỗ đặt, game kết thúc.</div></section>
+
+</main><script>
+const c=document.getElementById('c'),x=c.getContext('2d'),N=8,CELL=46,OX=16,OY=16,COLS=['#ba63ff','#59dcff','#ffe15a','#57e0a1','#ff667f'];
+const SH=[[[0,0]],[[0,0],[1,0]],[[0,0],[0,1]],[[0,0],[1,0],[0,1]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[0,1],[1,1]]];
+let b=[],shape,color,score=0,lines=0,hi=+localStorage.getItem('mg_block_hi')||0;
+const sc=document.getElementById('sc'),his=document.getElementById('hi'),ln=document.getElementById('lines'),sp=document.getElementById('shape');his.textContent=hi;
+function init(){b=Array.from({length:N},()=>Array(N).fill(null));score=0;lines=0;next();hud()}
+function next(){shape=SH[Math.floor(Math.random()*SH.length)];color=COLS[Math.floor(Math.random()*COLS.length)];sp.style.color=color;sp.textContent='■';if(!anyFit()){setTimeout(()=>{alert('Game Over');init()},80)}}
+function fit(r,q){return shape.every(([dx,dy])=>r+dy<N&&q+dx<N&&!b[r+dy][q+dx])}
+function anyFit(){for(let r=0;r<N;r++)for(let q=0;q<N;q++)if(fit(r,q))return true;return false}
+function clear(){let rows=[],cols=[];for(let r=0;r<N;r++)if(b[r].every(Boolean))rows.push(r);for(let q=0;q<N;q++)if(b.every(row=>row[q]))cols.push(q);rows.forEach(r=>b[r].fill(null));cols.forEach(q=>b.forEach(r=>r[q]=null));let n=rows.length+cols.length;if(n){lines+=n;score+=n*100}}
+function place(r,q){if(!fit(r,q))return;shape.forEach(([dx,dy])=>b[r+dy][q+dx]=color);score+=shape.length*10;clear();next();hud()}
+function hud(){sc.textContent=score;ln.textContent=lines;if(score>hi){hi=score;his.textContent=hi;localStorage.setItem('mg_block_hi',hi)}}
+function draw(){x.clearRect(0,0,400,500);for(let r=0;r<N;r++)for(let q=0;q<N;q++){let px=OX+q*CELL,py=OY+r*CELL;x.fillStyle='rgba(255,255,255,.055)';x.fillRect(px+2,py+2,CELL-4,CELL-4);if(b[r][q]){x.fillStyle=b[r][q];x.fillRect(px+5,py+5,CELL-10,CELL-10)}}x.fillStyle='rgba(255,255,255,.7)';x.font='16px Segoe UI';x.fillText('Khối kế tiếp',16,420);for(const [dx,dy] of shape){x.fillStyle=color;x.fillRect(130+dx*34,398+dy*34,30,30)}requestAnimationFrame(draw)}
+c.onpointerdown=e=>{let r=c.getBoundingClientRect(),px=(e.clientX-r.left)*400/r.width,py=(e.clientY-r.top)*500/r.height;let q=Math.floor((px-OX)/CELL),rr=Math.floor((py-OY)/CELL);if(rr>=0&&rr<N&&q>=0&&q<N)place(rr,q)};
+document.getElementById('restart').onclick=init;init();draw();
+</script></body></html>
