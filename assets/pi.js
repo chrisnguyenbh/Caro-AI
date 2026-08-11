@@ -1,7 +1,7 @@
-
 window.MiniPi = (() => {
   const SANDBOX = true;
   let ready = false;
+  let currentAuth = null;
 
   async function init(statusEl) {
     if (!window.Pi) {
@@ -28,6 +28,7 @@ window.MiniPi = (() => {
     if (buttonEl) buttonEl.disabled = true;
     try {
       const auth = await window.Pi.authenticate(["username"], () => {});
+      currentAuth = auth;
       const username = auth?.user?.username || "Pioneer";
       localStorage.setItem("minigame_pi_username", username);
       if (statusEl) statusEl.textContent = "@" + username;
@@ -45,5 +46,13 @@ window.MiniPi = (() => {
     return localStorage.getItem("minigame_pi_username") || "";
   }
 
-  return { init, login, cachedUsername, SANDBOX };
+  function getAuth() {
+    return currentAuth;
+  }
+
+  async function ensureAuth(statusEl, buttonEl) {
+    return currentAuth || login(statusEl, buttonEl);
+  }
+
+  return { init, login, ensureAuth, getAuth, cachedUsername, SANDBOX };
 })();

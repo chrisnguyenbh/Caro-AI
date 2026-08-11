@@ -14,7 +14,7 @@
 .cover{height:118px;border-radius:17px 17px 0 0;display:flex;align-items:center;justify-content:center;font-size:52px;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.18),rgba(255,255,255,.02)),linear-gradient(135deg,#35184f,#151020)}
 .game-meta{padding:12px}.game-meta b{display:block;font-size:15px;margin-bottom:4px}.game-meta span{font-size:11px;color:var(--muted);line-height:1.35;display:block}
 .tag{display:inline-block!important;margin-top:7px;padding:4px 7px;border-radius:999px;background:rgba(179,92,255,.14);color:#e6c9ff!important}
-.footer{text-align:center;color:var(--muted);font-size:11px;padding:16px 0 4px}
+.reward-panel{padding:16px;margin:12px 0}.reward-panel h2{margin:0 0 7px;font-size:19px}.reward-panel p{margin:0 0 10px;color:var(--muted);font-size:12px;line-height:1.45}.reward-row{display:flex;gap:8px}.reward-row input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.07);color:#fff;border-radius:12px;padding:11px}.reward-status{margin-top:9px;font-size:12px;color:var(--muted);word-break:break-word}.legal{display:flex;justify-content:center;gap:14px;margin-top:12px}.legal a{color:var(--muted);font-size:11px}.footer{text-align:center;color:var(--muted);font-size:11px;padding:16px 0 4px}
 @media(max-width:390px){.grid{grid-template-columns:1fr}.cover{height:100px}}
 </style>
 </head>
@@ -32,6 +32,16 @@
       <button class="btn" id="piLogin">Đăng nhập Pi</button>
       <button class="btn secondary" id="resetScores">Xóa điểm máy</button>
     </div>
+  </section>
+
+  <section class="panel reward-panel">
+    <h2>🎁 Testnet A2U Reward</h2>
+    <p>Dùng riêng để hoàn thành Pi Developer Checklist. Mỗi tester đăng nhập bằng một tài khoản Pi khác nhau rồi nhận một khoản Test-Pi nhỏ.</p>
+    <div class="reward-row">
+      <input id="testCode" type="password" autocomplete="off" placeholder="Mã thử nghiệm" aria-label="Mã thử nghiệm">
+      <button class="btn good" id="claimReward">Nhận Test-Pi</button>
+    </div>
+    <div class="reward-status" id="rewardStatus">Chưa gửi giao dịch.</div>
   </section>
 
   <section class="grid">
@@ -52,7 +62,8 @@
     </a>
   </section>
 
-  <div class="footer">MiniGame Hub V2 • Mobile Controls • Pi Sandbox</div>
+  <div class="legal"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms</a></div>
+  <div class="footer">MiniGame Hub V3 • Testnet A2U • Pi Sandbox</div>
 </main>
 <script src="assets/pi.js"></script>
 <script>
@@ -63,6 +74,31 @@ document.getElementById("resetScores").onclick=()=>{
   if(confirm("Xóa toàn bộ high score của 5 game trên thiết bị này?")){
     Object.keys(localStorage).filter(k=>k.startsWith("mg_")).forEach(k=>localStorage.removeItem(k));
     alert("Đã xóa điểm.");
+  }
+};
+
+const claimBtn=document.getElementById("claimReward");
+const rewardStatus=document.getElementById("rewardStatus");
+claimBtn.onclick=async()=>{
+  claimBtn.disabled=true;
+  rewardStatus.textContent="Đang xác thực tài khoản Pi…";
+  try{
+    const auth=await MiniPi.ensureAuth(statusEl,loginBtn);
+    if(!auth?.accessToken) throw new Error("Không lấy được Pi access token. Hãy đăng nhập lại trong Pi Browser.");
+    rewardStatus.textContent="Đang gửi Testnet A2U reward…";
+    const response=await fetch("/api/a2u-reward",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({accessToken:auth.accessToken,testCode:document.getElementById("testCode").value})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok) throw new Error(data.message||data.error||"A2U reward thất bại");
+    rewardStatus.textContent=`✅ Đã gửi ${data.amount??""} Test-Pi cho @${data.username||"Pioneer"}. Network: ${data.network||"Testnet"}. TX: ${data.txid||"completed"}`;
+    claimBtn.textContent="Đã nhận";
+  }catch(err){
+    console.error(err);
+    rewardStatus.textContent="❌ "+(err?.message||"Không thể gửi reward.");
+    claimBtn.disabled=false;
   }
 };
 </script>
