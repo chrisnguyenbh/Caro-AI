@@ -38,8 +38,7 @@
     <h2>🎁 Testnet A2U Reward</h2>
     <p>Dùng riêng để hoàn thành Pi Developer Checklist. Mỗi tester đăng nhập bằng một tài khoản Pi khác nhau rồi nhận một khoản Test-Pi nhỏ.</p>
     <div class="reward-row">
-      <input id="testCode" type="password" autocomplete="off" placeholder="Mã thử nghiệm" aria-label="Mã thử nghiệm">
-      <button class="btn good" id="claimReward">Nhận Test-Pi</button>
+<button class="btn good" id="claimReward">Nhận Test-Pi</button>
     </div>
     <div class="reward-status" id="rewardStatus">Chưa gửi giao dịch.</div>
   </section>
@@ -89,7 +88,7 @@ claimBtn.onclick=async()=>{
     const response=await fetch("/api/a2u-reward",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken:auth.accessToken,testCode:document.getElementById("testCode").value})
+      body:JSON.stringify({accessToken:auth.accessToken})
     });
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.ok) throw new Error(data.message||data.error||"A2U reward thất bại");

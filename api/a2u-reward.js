@@ -62,7 +62,6 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.PI_API_KEY;
   const privateSeed = process.env.PI_WALLET_PRIVATE_SEED;
-  const expectedCode = process.env.A2U_TEST_CODE;
 
   if (!apiKey || !privateSeed) {
     return json(res, 503, {
@@ -79,13 +78,8 @@ export default async function handler(req, res) {
   body ||= {};
 
   const accessToken = String(body.accessToken || "").trim();
-  const testCode = String(body.testCode || "").trim();
-
   if (!accessToken) {
     return json(res, 400, { ok: false, error: "missing_access_token" });
-  }
-  if (expectedCode && testCode !== expectedCode) {
-    return json(res, 403, { ok: false, error: "invalid_test_code", message: "Mã thử nghiệm không đúng." });
   }
 
   try {
