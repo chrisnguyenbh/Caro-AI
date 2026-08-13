@@ -1,121 +1,18 @@
-window.MiniPi = (() => {
-  const SANDBOX = false;
-  let ready = false;
-  let currentAuth = null;
-
-  async function init(statusEl) {
-    if (!window.Pi) {
-      if (statusEl) statusEl.textContent = "Pi SDK chưa tải";
-      return false;
-    }
-    try {
-      await window.Pi.init({ version: "2.0", sandbox: SANDBOX });
-      ready = true;
-      if (statusEl) statusEl.textContent = "Pi SDK • Mainnet";
-      return true;
-    } catch (e) {
-      console.error("Pi.init failed", e);
-      if (statusEl) statusEl.textContent = "Pi SDK lỗi";
-      return false;
-    }
+window.MiniPi=(()=>{
+  const SANDBOX=false; let ready=false,currentAuth=null;
+  async function init(statusEl){if(!window.Pi){if(statusEl)statusEl.textContent="Pi SDK chưa tải";return false;}try{await window.Pi.init({version:"2.0",sandbox:false});ready=true;if(statusEl)statusEl.textContent="Pi SDK • Mainnet";return true}catch(e){console.error(e);if(statusEl)statusEl.textContent="Pi SDK lỗi";return false;}}
+  async function login(statusEl,buttonEl){if(!ready||!window.Pi){if(statusEl)statusEl.textContent="Hãy mở trong Pi Browser";return null;}if(buttonEl)buttonEl.disabled=true;try{const auth=await window.Pi.authenticate(["username","payments"],()=>{});currentAuth=auth;const username=auth?.user?.username||"Pioneer";localStorage.setItem("minigame_pi_username",username);if(statusEl)statusEl.textContent="@"+username;if(buttonEl)buttonEl.textContent="Đã đăng nhập";return auth;}catch(e){console.error(e);if(statusEl)statusEl.textContent="Chưa đăng nhập Pi";if(buttonEl)buttonEl.disabled=false;return null;}}
+  function cachedUsername(){return localStorage.getItem("minigame_pi_username")||"";} function getAuth(){return currentAuth;} async function ensureAuth(statusEl,buttonEl){return currentAuth||login(statusEl,buttonEl);}
+  async function createPayment({amount,memo,metadata,statusEl}){
+    if(!ready||!window.Pi)throw new Error("Pi SDK chưa sẵn sàng");
+    const payment=await window.Pi.createPayment({amount,memo,metadata},{
+      onReadyForServerApproval:async(paymentId)=>{statusEl&& (statusEl.textContent=`⏳ Approve payment ${paymentId}…`);const r=await fetch("/api/approve",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({paymentId})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok){const e=new Error(d.response?.message||d.message||d.error||`Approve failed (${r.status})`);e.debug=d;throw e;}statusEl&&(statusEl.textContent=`✅ Approved ${paymentId} (${d.upstreamStatus})`);},
+      onReadyForServerCompletion:async(paymentId,txid)=>{statusEl&& (statusEl.textContent=`⏳ Complete payment ${paymentId}…`);const r=await fetch("/api/complete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({paymentId,txid})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok){const e=new Error(d.response?.message||d.message||d.error||`Complete failed (${r.status})`);e.debug=d;throw e;}statusEl&&(statusEl.textContent=`🎉 Completed • TX ${txid}`);},
+      onCancel:(paymentId)=>{statusEl&&(statusEl.textContent=`⚠️ Payment cancelled: ${paymentId}`);fetch("/api/cancel",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({paymentId})}).catch(()=>{});},
+      onError:(error,payment)=>{console.error("Pi payment error",error,payment);statusEl&&(statusEl.textContent=`❌ Pi error: ${error?.message||error}`);},
+      onIncompletePaymentFound:(payment)=>{console.warn("Incomplete payment",payment);statusEl&&(statusEl.textContent=`⚠️ Incomplete payment: ${payment?.identifier||"unknown"}`);}
+    });
+    return payment;
   }
-
-  async function login(statusEl, buttonEl) {
-    if (!ready || !window.Pi) {
-      if (statusEl) statusEl.textContent = "Hãy mở app trong Pi Browser";
-      return null;
-    }
-    if (buttonEl) buttonEl.disabled = true;
-    try {
-      const auth = await window.Pi.authenticate(
-        ["username", "payments"],
-        onIncompletePaymentFound
-      );
-      currentAuth = auth;
-      const username = auth?.user?.username || "Pioneer";
-      localStorage.setItem("minigame_pi_username", username);
-      if (statusEl) statusEl.textContent = "@" + username;
-      if (buttonEl) buttonEl.textContent = "Đã đăng nhập";
-      return auth;
-    } catch (e) {
-      console.error("Pi.authenticate failed", e);
-      if (statusEl) statusEl.textContent = "Chưa đăng nhập Pi";
-      if (buttonEl) buttonEl.disabled = false;
-      return null;
-    }
-  }
-
-  async function onIncompletePaymentFound(payment) {
-    if (!payment?.identifier) return;
-    console.log("Incomplete Pi payment found", payment);
-    const txid = payment?.transaction?.txid || null;
-    try {
-      if (txid) {
-        await fetch("/api/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId: payment.identifier, txid })
-        });
-      } else {
-        await fetch("/api/cancel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId: payment.identifier })
-        });
-      }
-    } catch (e) {
-      console.warn("Could not recover incomplete payment", e);
-    }
-  }
-
-  function cachedUsername() {
-    return localStorage.getItem("minigame_pi_username") || "";
-  }
-  function getAuth() { return currentAuth; }
-  async function ensureAuth(statusEl, buttonEl) {
-    return currentAuth || login(statusEl, buttonEl);
-  }
-
-  async function createPayment({ amount, memo, metadata, statusEl }) {
-    const auth = currentAuth;
-    if (!auth?.accessToken) throw new Error("Hãy đăng nhập Pi trước khi thanh toán.");
-
-    const paymentData = { amount, memo, metadata };
-    const paymentCallbacks = {
-      onReadyForServerApproval: async (paymentId) => {
-        if (statusEl) statusEl.textContent = "Đang chờ server duyệt giao dịch…";
-        const r = await fetch("/api/approve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId, accessToken: auth.accessToken })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || !data.ok) throw new Error(data.message || "Server approval thất bại");
-        if (statusEl) statusEl.textContent = "Đã duyệt. Hãy xác nhận giao dịch trong Pi Wallet…";
-      },
-      onReadyForServerCompletion: async (paymentId, txid) => {
-        if (statusEl) statusEl.textContent = "Đang xác nhận giao dịch trên Pi Mainnet…";
-        const r = await fetch("/api/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId, txid, accessToken: auth.accessToken })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || !data.ok) throw new Error(data.message || "Server completion thất bại");
-        if (statusEl) statusEl.textContent = `✅ Thanh toán thành công. TX: ${txid}`;
-      },
-      onCancel: (paymentId) => {
-        console.warn("Pi payment cancelled", paymentId);
-        if (statusEl) statusEl.textContent = "Giao dịch đã được hủy.";
-      },
-      onError: (error, payment) => {
-        console.error("Pi payment error", error, payment);
-        if (statusEl) statusEl.textContent = "❌ Pi payment error: " + (error?.message || error || "Unknown error");
-      }
-    };
-
-    return window.Pi.createPayment(paymentData, paymentCallbacks);
-  }
-
-  return { init, login, ensureAuth, getAuth, cachedUsername, createPayment, SANDBOX };
+  return {init,login,ensureAuth,getAuth,cachedUsername,createPayment,SANDBOX};
 })();

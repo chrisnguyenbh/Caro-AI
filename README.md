@@ -1,29 +1,24 @@
-# MiniGame Hub — Pi Mainnet
+# MiniGame Hub — Pi Mainnet / Step 10 Debug
 
-This build is configured for the Pi Mainnet production app.
+This package is arranged for Vercel with `api/` at the repository root.
 
-## Step 10: User-to-App payment
+## Mainnet U2A flow
 
-The frontend uses `Pi.createPayment()` and the backend exposes:
-- `POST /api/approve`
-- `POST /api/complete`
-- `POST /api/cancel`
+1. `Pi.init({ version: "2.0", sandbox: false })`
+2. `Pi.authenticate(["username", "payments"], ...)`
+3. `Pi.createPayment(...)`
+4. `onReadyForServerApproval(paymentId)` -> `POST /api/approve`
+5. Pi Wallet signs the transaction
+6. `onReadyForServerCompletion(paymentId, txid)` -> `POST /api/complete`
+
+## Debug routes
+
 - `GET /api/health`
+- `GET /api/pi-key-test` — tests whether the configured key is accepted by Pi without exposing it.
+- `GET /api/payment?paymentId=...` — fetches one payment using the server key.
 
-Set `PI_API_KEY` in Vercel to the API key shown in the **Mainnet Minigame** project in the Pi Developer Portal. Do not use a Testnet API key.
+The `/api/approve` response includes `debugId`, `paymentId`, Pi HTTP status, response body, and duration. Never put the API key or wallet seed in frontend code or GitHub.
 
-The production SDK is initialized with `sandbox: false`.
+## Vercel
 
-## Deploy
-
-1. Upload/deploy this project to the production URL registered for the Mainnet app.
-2. In Vercel, set `PI_API_KEY` for Production.
-3. Redeploy after changing environment variables.
-4. Open the app in Pi Browser.
-5. Log in, then tap **Thanh toán 0.01 Pi**.
-6. Pi Wallet should become interactive after server approval; confirm the transaction.
-7. The app calls server completion after Pi provides the txid.
-
-Check `/api/health` and confirm `network: "Pi Mainnet"`, `sandbox: false`, `configured: true`.
-
-A2U reward code from the old Testnet build is intentionally not used for Step 10.
+Set `PI_API_KEY` in Vercel Production Environment Variables to the **Mainnet** API key for this app, then redeploy.

@@ -1,14 +1,10 @@
-const API_BASE = "https://api.minepi.com/v2";
-function json(res,status,body){res.status(status).setHeader("Content-Type","application/json; charset=utf-8");res.setHeader("Cache-Control","no-store");res.end(JSON.stringify(body));}
+const PI_API_BASE = "https://api.minepi.com/v2";
+function json(res,status,body){res.status(status).setHeader("Content-Type","application/json; charset=utf-8");res.setHeader("Cache-Control","no-store");return res.end(JSON.stringify(body));}
 export default async function handler(req,res){
-  if(req.method!=="GET") return json(res,405,{ok:false,error:"method_not_allowed"});
-  const key=process.env.PI_API_KEY;
-  if(!key) return json(res,503,{ok:false,error:"server_not_configured"});
-  const id=String(req.query?.paymentId||"").trim();
-  if(!id) return json(res,400,{ok:false,error:"missing_payment_id"});
-  try{
-    const r=await fetch(`${API_BASE}/payments/${encodeURIComponent(id)}`,{headers:{Authorization:`Key ${key}`,Accept:"application/json"}});
-    const text=await r.text(); let data=null; try{data=text?JSON.parse(text):null}catch{}
-    return json(res,r.ok?200:502,{ok:r.ok,debug:true,upstreamStatus:r.status,payment:data||text||null,paymentId:id});
-  }catch(e){return json(res,500,{ok:false,error:"server_error",message:e?.message||String(e),paymentId:id});}
+  if(req.method!=="GET")return json(res,405,{ok:false,error:"method_not_allowed"});
+  const paymentId=String(req.query?.paymentId||"").trim(); if(!paymentId)return json(res,400,{ok:false,error:"missing_payment_id"});
+  const rawKey=String(process.env.PI_API_KEY||"").trim(); if(!rawKey)return json(res,503,{ok:false,error:"missing_pi_api_key"});
+  const apiKey=rawKey.replace(/^Key\s+/i,"");
+  try{const upstream=await fetch(`${PI_API_BASE}/payments/${encodeURIComponent(paymentId)}`,{headers:{Authorization:`Key ${apiKey}`}});const text=await upstream.text();let response=null;try{response=text?JSON.parse(text):null}catch{response=text}return json(res,upstream.ok?200:upstream.status,{ok:upstream.ok,paymentId,upstreamStatus:upstream.status,response,network:"Pi Mainnet"});}
+  catch(err){return json(res,502,{ok:false,error:"pi_payment_request_failed",paymentId,message:err?.message||"Pi payment request failed"});}
 }

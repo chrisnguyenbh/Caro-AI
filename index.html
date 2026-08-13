@@ -36,9 +36,10 @@
 
   <section class="panel reward-panel">
     <h2>💸 Test Transaction — User → App</h2>
-    <p>Thanh toán 0.01 Pi trên Mainnet để kiểm tra Step 10. Pi Wallet sẽ mở để bạn xác nhận giao dịch.</p>
-    <div class="reward-row"><button class="btn good" id="payPi">Thanh toán 0.01 Pi</button></div>
+    <p>Pi Mainnet • Step 10. Bấm thanh toán để mở Pi Wallet, sau đó server sẽ approve và complete giao dịch.</p>
+    <div class="reward-row"><button class="btn good" id="payBtn">Thanh toán 0.01 Pi</button></div>
     <div class="reward-status" id="paymentStatus">Chưa bắt đầu giao dịch.</div>
+    <div class="reward-status" id="debugStatus"></div>
   </section>
 
   <section class="grid">
@@ -60,25 +61,29 @@
   </section>
 
   <div class="legal"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms</a></div>
-  <div class="footer">MiniGame Hub • Pi Mainnet • User → App Payments</div>
+  <div class="footer">MiniGame Hub V3 • Testnet A2U • Pi Sandbox</div>
 </main>
 <script src="assets/pi.js"></script>
 <script>
 const statusEl=document.getElementById("piStatus"),loginBtn=document.getElementById("piLogin");
-const payBtn=document.getElementById("payPi"), paymentStatus=document.getElementById("paymentStatus");
+const paymentStatus=document.getElementById("paymentStatus"),debugStatus=document.getElementById("debugStatus"),payBtn=document.getElementById("payBtn");
 MiniPi.init(statusEl).then(()=>{const u=MiniPi.cachedUsername();if(u){statusEl.textContent="@"+u;loginBtn.textContent="Đăng nhập lại"}});
 loginBtn.onclick=()=>MiniPi.login(statusEl,loginBtn);
-document.getElementById("resetScores").onclick=()=>{
-  if(confirm("Xóa toàn bộ high score của 5 game trên thiết bị này?")){Object.keys(localStorage).filter(k=>k.startsWith("mg_")).forEach(k=>localStorage.removeItem(k));alert("Đã xóa điểm.");}
-};
+document.getElementById("resetScores").onclick=()=>{if(confirm("Xóa toàn bộ high score của 5 game trên thiết bị này?")){Object.keys(localStorage).filter(k=>k.startsWith("mg_")).forEach(k=>localStorage.removeItem(k));alert("Đã xóa điểm.");}};
 payBtn.onclick=async()=>{
-  payBtn.disabled=true; paymentStatus.textContent="Đang xác thực tài khoản Pi…";
+  payBtn.disabled=true; paymentStatus.textContent="Đang chuẩn bị thanh toán…"; debugStatus.textContent="";
   try{
     const auth=await MiniPi.ensureAuth(statusEl,loginBtn);
-    if(!auth?.accessToken) throw new Error("Không lấy được Pi access token. Hãy đăng nhập lại.");
-    paymentStatus.textContent="Đang tạo khoản thanh toán…";
-    await MiniPi.createPayment({amount:0.01,memo:"MiniGame Step 10 Mainnet payment",metadata:{kind:"step10_u2a",app:"minigame"},statusEl:paymentStatus});
-  }catch(e){console.error(e);paymentStatus.textContent="❌ "+(e?.message||"Không thể tạo thanh toán.");payBtn.disabled=false;}
+    if(!auth?.accessToken) throw new Error("Không lấy được Pi access token. Hãy đăng nhập lại trong Pi Browser.");
+    const result=await MiniPi.createPayment({amount:0.01,memo:"MiniGame Mainnet test transaction",metadata:{kind:"minigame_u2a_step10",createdAt:new Date().toISOString()},statusEl:paymentStatus});
+    paymentStatus.textContent="🎉 Giao dịch hoàn tất.";
+    debugStatus.textContent=`Payment ID: ${result?.identifier||result?.payment?.identifier||"xem log"}`;
+  }catch(err){
+    console.error(err);
+    paymentStatus.textContent="❌ "+(err?.message||"Thanh toán thất bại.");
+    if(err?.debug){const d=err.debug;debugStatus.textContent=`Debug ID: ${d.debugId||"-"} • Payment ID: ${d.paymentId||"-"} • Pi HTTP: ${d.upstreamStatus??"-"} • ${d.durationMs??"-"} ms`; }
+    payBtn.disabled=false;
+  }
 };
 </script>
 </body></html>
