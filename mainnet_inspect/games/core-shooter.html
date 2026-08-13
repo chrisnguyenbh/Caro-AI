@@ -1,0 +1,42 @@
+<!doctype html><html lang="vi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Elemental Core</title><link rel="stylesheet" href="../assets/common.css">
+</head><body><main class="app-shell">
+<div class="game-head"><a class="back" href="../index.html">← MiniGame</a><div class="game-title">Elemental Core</div><div style="width:78px"></div></div>
+
+<section class="hud">
+<div class="stat"><small>LEVEL</small><strong id="lv">1</strong></div>
+<div class="stat"><small>SCORE</small><strong id="sc">0</strong></div>
+<div class="stat"><small>CÒN</small><strong id="rm">0</strong></div>
+<div class="stat"><small>COMBO</small><strong id="cb">x1</strong></div>
+</section>
+<section class="panel game-card"><canvas id="c" width="720" height="720" style="width:100%;border-radius:50%;background:#12051d"></canvas>
+<div style="display:flex;gap:8px;margin-top:10px"><button class="btn secondary" id="pause" style="flex:1">Tạm dừng</button><button class="btn" id="restart" style="flex:1">Chơi lại</button></div>
+<div class="help">Chạm vào hướng muốn bắn. Phá bóng cùng màu để tăng combo. Level đầu đã được giảm tốc cho dễ làm quen.</div></section>
+
+</main><script>
+const c=document.getElementById('c'),x=c.getContext('2d'),W=c.width,H=c.height,CX=W/2,CY=H/2;
+const COLORS=['#ff5364','#52ddff','#ffe15a','#ba63ff'],R=[128,202,278];
+let level=1,score=0,combo=1,targets=[],bullets=[],parts=[],angle=-Math.PI/2,cur=COLORS[0],next=COLORS[1],paused=false,down=false;
+const lv=document.getElementById('lv'),sc=document.getElementById('sc'),rm=document.getElementById('rm'),cb=document.getElementById('cb');
+function rc(){return COLORS[Math.floor(Math.random()*COLORS.length)]}
+function hud(){lv.textContent=level;sc.textContent=score;rm.textContent=targets.filter(t=>t.a).length;cb.textContent='x'+combo}
+function init(){targets=[];let n=Math.min(18+(level-1)*2,34);for(let i=0;i<n;i++){let ri=i%3,slot=Math.floor(i/3),pr=Math.ceil(n/3);targets.push({ri,ang:Math.PI*2*slot/pr+ri*.21,sp:(ri%2? -1:1)*(.0032+level*.00022),col:rc(),a:1})}bullets=[];parts=[];cur=pick();next=pick();hud()}
+function pick(){let a=targets.filter(t=>t.a);return a.length?a[Math.floor(Math.random()*a.length)].col:rc()}
+function aim(px,py){let r=c.getBoundingClientRect();angle=Math.atan2((py-r.top)*H/r.height-CY,(px-r.left)*W/r.width-CX)}
+function shoot(){if(paused)return;bullets.push({x:CX,y:CY,vx:Math.cos(angle)*12,vy:Math.sin(angle)*12,col:cur});cur=next;next=pick()}
+c.onpointerdown=e=>{aim(e.clientX,e.clientY);shoot()};
+function boom(px,py,col){for(let i=0;i<18;i++){let a=Math.random()*6.28,s=2+Math.random()*5;parts.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,col,al:1})}}
+function upd(){if(paused)return;for(const t of targets)if(t.a)t.ang+=t.sp;
+outer:for(let i=bullets.length-1;i>=0;i--){let b=bullets[i];b.x+=b.vx;b.y+=b.vy;for(const t of targets){if(!t.a)continue;let tx=CX+Math.cos(t.ang)*R[t.ri],ty=CY+Math.sin(t.ang)*R[t.ri];if(Math.hypot(b.x-tx,b.y-ty)<34){if(b.col===t.col){t.a=0;score+=30*combo;combo=Math.min(9,combo+1);boom(tx,ty,t.col)}else combo=1;bullets.splice(i,1);hud();if(!targets.some(q=>q.a)){score+=250*level;level++;init()}continue outer}}if(b.x<0||b.x>W||b.y<0||b.y>H){bullets.splice(i,1);combo=1;hud()}}
+for(let i=parts.length-1;i>=0;i--){let p=parts[i];p.x+=p.vx;p.y+=p.vy;p.al-=.035;if(p.al<=0)parts.splice(i,1)}}
+function circle(px,py,r,col,gl=16){x.save();x.shadowColor=col;x.shadowBlur=gl;x.fillStyle=col;x.beginPath();x.arc(px,py,r,0,6.28);x.fill();x.restore()}
+function draw(){x.clearRect(0,0,W,H);let g=x.createRadialGradient(CX,CY,10,CX,CY,360);g.addColorStop(0,'#35134f');g.addColorStop(1,'#09020f');x.fillStyle=g;x.fillRect(0,0,W,H);
+for(const r of R){x.strokeStyle='rgba(255,255,255,.12)';x.setLineDash([8,12]);x.beginPath();x.arc(CX,CY,r,0,6.28);x.stroke()}x.setLineDash([]);
+for(const t of targets)if(t.a)circle(CX+Math.cos(t.ang)*R[t.ri],CY+Math.sin(t.ang)*R[t.ri],18,t.col,20);
+for(const b of bullets)circle(b.x,b.y,15,b.col,20);for(const p of parts){x.globalAlpha=p.al;circle(p.x,p.y,4,p.col,8);x.globalAlpha=1}
+x.save();x.translate(CX,CY);x.rotate(angle);x.fillStyle='#fff';x.fillRect(0,-7,42,14);x.restore();circle(CX,CY,25,cur,24);circle(CX,CY+58,10,next,12)}
+function loop(){upd();draw();requestAnimationFrame(loop)}init();loop();
+document.getElementById('pause').onclick=()=>{paused=!paused;document.getElementById('pause').textContent=paused?'Tiếp tục':'Tạm dừng'};
+document.getElementById('restart').onclick=()=>{level=1;score=0;combo=1;paused=false;init()};
+</script></body></html>
