@@ -1,27 +1,33 @@
-# MiniGame Hub V3.1 — Pi Testnet A2U (No Test Code)
+# MiniGame Hub V3.2 — Pi Testnet Developer Checklist
 
-MiniGame Hub gồm 5 game HTML5 và backend Vercel để thử **Pi App-to-User (A2U) trên Testnet**.
+MiniGame Hub gồm 5 game HTML5 và hai flow thanh toán Testnet:
 
-## Environment Variables cần trên Vercel
+1. **User-to-App (U2A)** — flow chính để hoàn thành Developer Checklist: frontend gọi `Pi.createPayment()`, server approval, người dùng xác nhận trong Pi Wallet, rồi server completion.
+2. **App-to-User (A2U)** — flow reward cũ được giữ riêng để thử app gửi Test-Pi cho user.
 
-Chỉ còn 3 biến:
+Theo Pi Developer Guide, bước **“Process a transaction on your app”** yêu cầu app xử lý một **User-to-App Pi Transaction**. Vì vậy nút `Thanh toán 0.01 Test-Pi` mới là nút dùng cho checklist; A2U không thay thế bước này.
+
+## Environment Variables trên Vercel
 
 - `PI_API_KEY` = API Key của paired Testnet app.
-- `PI_WALLET_PRIVATE_SEED` = private seed của Testnet App Wallet.
-- `A2U_TEST_AMOUNT` = `0.01`.
+- `PI_WALLET_PRIVATE_SEED` = private seed của Testnet App Wallet (chỉ cần cho A2U reward).
+- `A2U_TEST_AMOUNT` = `0.01` (tùy chọn).
 
-Không còn `A2U_TEST_CODE`, nên người test không phải nhập mã.
+Không commit API Key hoặc private seed vào GitHub.
 
-## Bảo mật
+## Cách test Step 10
 
-- Không commit API Key hoặc Private Seed lên GitHub.
-- Chỉ đặt secret trong Vercel > Settings > Environment Variables.
-- Endpoint vẫn bắt buộc người dùng có Pi access token hợp lệ và backend xác minh token qua `/v2/me`.
-- Đây là bản phục vụ Testnet checklist. Không dùng như cơ chế phát thưởng production công khai.
+1. Deploy project lên production URL đã cấu hình trong Developer Portal.
+2. Mở đúng app đó bằng **Pi Browser / Developer Sandbox**.
+3. Bấm **Đăng nhập Pi** và cấp quyền `username` + `payments`.
+4. Bấm **Thanh toán 0.01 Test-Pi**.
+5. Pi Wallet sẽ mở payment sheet.
+6. Xác nhận giao dịch bằng Test-Pi.
+7. SDK gọi `/api/approve` khi payment sẵn sàng để server approval.
+8. Sau khi người dùng gửi transaction lên blockchain, SDK gọi `/api/complete` với `paymentId` + `txid`.
+9. Chờ trạng thái giao dịch hoàn tất rồi quay lại Developer Portal kiểm tra bước 10.
 
-## Test
-
-Sau khi cấu hình Environment Variables và redeploy:
+## Kiểm tra backend
 
 `https://<domain>/api/health`
 
@@ -31,6 +37,4 @@ Kết quả mong đợi:
 {"ok":true,"mode":"Pi Testnet A2U","configured":true}
 ```
 
-Sau đó mở app qua Developer Sandbox của paired Testnet app, đăng nhập Pi và bấm nút nhận Test-Pi.
-
-Lặp lại với 5 tài khoản/Testnet wallet khác nhau để đáp ứng điều kiện 5 unique wallets.
+Lưu ý: endpoint health hiện kiểm tra cấu hình A2U nên có thể yêu cầu `PI_WALLET_PRIVATE_SEED`. Nếu bạn chỉ test U2A, `PI_API_KEY` là secret quan trọng cho `/api/approve` và `/api/complete`.

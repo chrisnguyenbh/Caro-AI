@@ -35,12 +35,21 @@
   </section>
 
   <section class="panel reward-panel">
-    <h2>🎁 Testnet A2U Reward</h2>
-    <p>Dùng riêng để hoàn thành Pi Developer Checklist. Mỗi tester đăng nhập bằng một tài khoản Pi khác nhau rồi nhận một khoản Test-Pi nhỏ.</p>
+    <h2>💸 Test Transaction — User → App</h2>
+    <p>Đây là flow dùng cho bước 10: Pi SDK mở màn hình thanh toán, bạn xác nhận giao dịch, sau đó server thực hiện approval và completion.</p>
     <div class="reward-row">
-<button class="btn good" id="claimReward">Nhận Test-Pi</button>
+      <button class="btn good" id="testPayment">Thanh toán 0.01 Test-Pi</button>
     </div>
-    <div class="reward-status" id="rewardStatus">Chưa gửi giao dịch.</div>
+    <div class="reward-status" id="paymentStatus">Chưa bắt đầu giao dịch.</div>
+  </section>
+
+  <section class="panel reward-panel">
+    <h2>🎁 Testnet A2U Reward</h2>
+    <p>Flow này giữ lại để bạn thử App → User riêng. Nó không thay thế bước 10 của Developer Checklist.</p>
+    <div class="reward-row">
+      <button class="btn secondary" id="claimReward">Nhận Test-Pi</button>
+    </div>
+    <div class="reward-status" id="rewardStatus">Chưa gửi A2U reward.</div>
   </section>
 
   <section class="grid">
@@ -73,6 +82,24 @@ document.getElementById("resetScores").onclick=()=>{
   if(confirm("Xóa toàn bộ high score của 5 game trên thiết bị này?")){
     Object.keys(localStorage).filter(k=>k.startsWith("mg_")).forEach(k=>localStorage.removeItem(k));
     alert("Đã xóa điểm.");
+  }
+};
+
+const paymentBtn=document.getElementById("testPayment");
+const paymentStatus=document.getElementById("paymentStatus");
+paymentBtn.onclick=async()=>{
+  paymentBtn.disabled=true;
+  paymentStatus.textContent="Đang mở Pi payment sheet…";
+  try{
+    await MiniPi.ensureAuth(statusEl,loginBtn);
+    if(!MiniPi.getAuth()) throw new Error("Không đăng nhập được Pi. Hãy thử lại trong Pi Browser Sandbox.");
+    const payment=await MiniPi.createTestPayment({amount:0.01,memo:"MiniGame Hub — Developer Checklist Test"});
+    paymentStatus.textContent=`✅ SDK đã tạo payment ${payment?.identifier||""}. Nếu Pi Wallet vẫn đang xử lý, hãy chờ vài giây.`;
+  }catch(err){
+    console.error(err);
+    paymentStatus.textContent="❌ "+(err?.message||"Không thể tạo giao dịch Test-Pi.");
+  }finally{
+    paymentBtn.disabled=false;
   }
 };
 

@@ -27,7 +27,10 @@ window.MiniPi = (() => {
     }
     if (buttonEl) buttonEl.disabled = true;
     try {
-      const auth = await window.Pi.authenticate(["username"], () => {});
+      const auth = await window.Pi.authenticate(
+        ["username", "payments"],
+        handleIncompletePayment
+      );
       currentAuth = auth;
       const username = auth?.user?.username || "Pioneer";
       localStorage.setItem("minigame_pi_username", username);
@@ -39,6 +42,28 @@ window.MiniPi = (() => {
       if (statusEl) statusEl.textContent = "Chưa đăng nhập Pi";
       if (buttonEl) buttonEl.disabled = false;
       return null;
+    }
+  }
+
+  async function handleIncompletePayment(payment) {
+    console.warn("Pi incomplete payment found", payment);
+    const paymentId = payment?.identifier;
+    if (!paymentId) return;
+
+    // If the user has already submitted the transaction, the SDK may provide
+    // txid here. Complete it on the server so a stale payment does not block
+    // the next sandbox test.
+    const txid = payment?.transaction?.txid;
+    if (!txid) return;
+
+    try {
+      await fetch("/api/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId, txid }),
+      });
+    } catch (e) {
+      console.error("Unable to recover incomplete payment", e);
     }
   }
 
@@ -54,5 +79,66 @@ window.MiniPi = (() => {
     return currentAuth || login(statusEl, buttonEl);
   }
 
-  return { init, login, ensureAuth, getAuth, cachedUsername, SANDBOX };
+  async function createTestPayment({ amount = 0.01, memo = "MiniGame Hub Test Payment" } = {}) {
+    if (!ready || !window.Pi) throw new Error("Pi SDK chưa sẵn sàng. Hãy mở app trong Pi Browser Sandbox.");
+    if (!currentAuth) throw new Error("Hãy đăng nhập Pi trước.");
+
+    const paymentData = {
+      amount,
+      memo,
+      metadata: {
+        kind: "minigame_u2a_test",
+        purpose: "Pi Developer Checklist - Process a Transaction on the App",
+        createdAt: new Date().toISOString(),
+      },
+    };
+
+    return window.Pi.createPayment(paymentData, {
+      onReadyForServerApproval: async (paymentId) => {
+        console.log("onReadyForServerApproval", paymentId);
+        const response = await fetch("/api/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || data.error || "Server approval failed.");
+        }
+        return data;
+      },
+
+      onReadyForServerCompletion: async (paymentId, txid) => {
+        console.log("onReadyForServerCompletion", paymentId, txid);
+        const response = await fetch("/api/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId, txid }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || data.error || "Server completion failed.");
+        }
+        return data;
+      },
+
+      onCancel: (paymentId) => {
+        console.log("Pi payment cancelled", paymentId);
+      },
+
+      onError: (error, payment) => {
+        console.error("Pi payment error", error, payment);
+      },
+    });
+  }
+
+  return {
+    init,
+    login,
+    ensureAuth,
+    getAuth,
+    cachedUsername,
+    createTestPayment,
+    SANDBOX,
+  };
 })();
