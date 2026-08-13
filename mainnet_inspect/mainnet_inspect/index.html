@@ -36,21 +36,13 @@
 
   <section class="panel reward-panel">
     <h2>💸 Test Transaction — User → App</h2>
-    <p>Đây là flow dùng cho bước 10: Pi SDK mở màn hình thanh toán, bạn xác nhận giao dịch, sau đó server thực hiện approval và completion.</p>
-    <div class="reward-row">
-      <button class="btn good" id="testPayment">Thanh toán 0.01 Test-Pi</button>
-    </div>
+    <p>Thanh toán 0.01 Pi trên Mainnet để kiểm tra Step 10. Pi Wallet sẽ mở để bạn xác nhận giao dịch.</p>
+    <div class="reward-row"><button class="btn good" id="payPi">Thanh toán 0.01 Pi</button></div>
     <div class="reward-status" id="paymentStatus">Chưa bắt đầu giao dịch.</div>
+    <div class="reward-status" id="paymentDebug" style="font-size:.82rem;opacity:.9;word-break:break-word"></div>
   </section>
 
-  <section class="panel reward-panel">
-    <h2>🎁 Testnet A2U Reward</h2>
-    <p>Flow này giữ lại để bạn thử App → User riêng. Nó không thay thế bước 10 của Developer Checklist.</p>
-    <div class="reward-row">
-      <button class="btn secondary" id="claimReward">Nhận Test-Pi</button>
-    </div>
-    <div class="reward-status" id="rewardStatus">Chưa gửi A2U reward.</div>
-  </section>
+  <section class="panel reward-panel" style="font-size:12px"><b>Debug Approval v3</b><p style="margin-top:6px">Payment ID và HTTP status /approve sẽ được hiển thị khi Pi SDK gọi callback. Không hiển thị API key.</p></section>
 
   <section class="grid">
     <a class="panel game-link" href="games/core-shooter.html">
@@ -71,61 +63,25 @@
   </section>
 
   <div class="legal"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms</a></div>
-  <div class="footer">MiniGame Hub V3 • Testnet A2U • Pi Sandbox</div>
+  <div class="footer">MiniGame Hub • Pi Mainnet • User → App Payments</div>
 </main>
 <script src="assets/pi.js"></script>
 <script>
 const statusEl=document.getElementById("piStatus"),loginBtn=document.getElementById("piLogin");
+const payBtn=document.getElementById("payPi"), paymentStatus=document.getElementById("paymentStatus"), paymentDebug=document.getElementById("paymentDebug");
 MiniPi.init(statusEl).then(()=>{const u=MiniPi.cachedUsername();if(u){statusEl.textContent="@"+u;loginBtn.textContent="Đăng nhập lại"}});
 loginBtn.onclick=()=>MiniPi.login(statusEl,loginBtn);
 document.getElementById("resetScores").onclick=()=>{
-  if(confirm("Xóa toàn bộ high score của 5 game trên thiết bị này?")){
-    Object.keys(localStorage).filter(k=>k.startsWith("mg_")).forEach(k=>localStorage.removeItem(k));
-    alert("Đã xóa điểm.");
-  }
+  if(confirm("Xóa toàn bộ high score của 5 game trên thiết bị này?")){Object.keys(localStorage).filter(k=>k.startsWith("mg_")).forEach(k=>localStorage.removeItem(k));alert("Đã xóa điểm.");}
 };
-
-const paymentBtn=document.getElementById("testPayment");
-const paymentStatus=document.getElementById("paymentStatus");
-paymentBtn.onclick=async()=>{
-  paymentBtn.disabled=true;
-  paymentStatus.textContent="Đang mở Pi payment sheet…";
-  try{
-    await MiniPi.ensureAuth(statusEl,loginBtn);
-    if(!MiniPi.getAuth()) throw new Error("Không đăng nhập được Pi. Hãy thử lại trong Pi Browser Sandbox.");
-    const payment=await MiniPi.createTestPayment({amount:0.01,memo:"MiniGame Hub — Developer Checklist Test"});
-    paymentStatus.textContent=`✅ SDK đã tạo payment ${payment?.identifier||""}. Nếu Pi Wallet vẫn đang xử lý, hãy chờ vài giây.`;
-  }catch(err){
-    console.error(err);
-    paymentStatus.textContent="❌ "+(err?.message||"Không thể tạo giao dịch Test-Pi.");
-  }finally{
-    paymentBtn.disabled=false;
-  }
-};
-
-const claimBtn=document.getElementById("claimReward");
-const rewardStatus=document.getElementById("rewardStatus");
-claimBtn.onclick=async()=>{
-  claimBtn.disabled=true;
-  rewardStatus.textContent="Đang xác thực tài khoản Pi…";
+payBtn.onclick=async()=>{
+  payBtn.disabled=true; paymentStatus.textContent="Đang xác thực tài khoản Pi…";
   try{
     const auth=await MiniPi.ensureAuth(statusEl,loginBtn);
-    if(!auth?.accessToken) throw new Error("Không lấy được Pi access token. Hãy đăng nhập lại trong Pi Browser.");
-    rewardStatus.textContent="Đang gửi Testnet A2U reward…";
-    const response=await fetch("/api/a2u-reward",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({accessToken:auth.accessToken})
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok||!data.ok) throw new Error(data.message||data.error||"A2U reward thất bại");
-    rewardStatus.textContent=`✅ Đã gửi ${data.amount??""} Test-Pi cho @${data.username||"Pioneer"}. Network: ${data.network||"Testnet"}. TX: ${data.txid||"completed"}`;
-    claimBtn.textContent="Đã nhận";
-  }catch(err){
-    console.error(err);
-    rewardStatus.textContent="❌ "+(err?.message||"Không thể gửi reward.");
-    claimBtn.disabled=false;
-  }
+    if(!auth?.accessToken) throw new Error("Không lấy được Pi access token. Hãy đăng nhập lại.");
+    paymentStatus.textContent="Đang tạo khoản thanh toán…"; paymentDebug.textContent="Debug v3 • chờ Payment ID từ Pi SDK…";
+    await MiniPi.createPayment({amount:0.01,memo:"MiniGame Step 10 Mainnet payment",metadata:{kind:"step10_u2a",app:"minigame"},statusEl:paymentStatus});
+  }catch(e){console.error(e);paymentStatus.textContent="❌ "+(e?.message||"Không thể tạo thanh toán.");payBtn.disabled=false;}
 };
 </script>
 </body></html>

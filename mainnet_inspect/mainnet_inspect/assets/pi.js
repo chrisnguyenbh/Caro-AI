@@ -83,14 +83,25 @@ window.MiniPi = (() => {
     const paymentData = { amount, memo, metadata };
     const paymentCallbacks = {
       onReadyForServerApproval: async (paymentId) => {
-        if (statusEl) statusEl.textContent = "Đang chờ server duyệt giao dịch…";
+        if (statusEl) statusEl.textContent = `Đang duyệt Payment ID: ${paymentId}`;
         const r = await fetch("/api/approve", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId, accessToken: auth.accessToken })
+          body: JSON.stringify({ paymentId })
         });
         const data = await r.json().catch(() => ({}));
-        if (!r.ok || !data.ok) throw new Error(data.message || "Server approval thất bại");
+        if (!r.ok || !data.ok) {
+          const d = data?.diagnostic;
+          const detail = [
+            data?.message || "Server approval thất bại",
+            d?.upstreamStatus ? `HTTP Pi: ${d.upstreamStatus}` : "",
+            d?.upstreamStatusText || "",
+            data?.requestId ? `Debug ID: ${data.requestId}` : ""
+          ].filter(Boolean).join(" | ");
+          if (statusEl) statusEl.textContent = "❌ APPROVE: " + detail;
+          console.error("Pi approval debug", data);
+          throw new Error(detail);
+        }
         if (statusEl) statusEl.textContent = "Đã duyệt. Hãy xác nhận giao dịch trong Pi Wallet…";
       },
       onReadyForServerCompletion: async (paymentId, txid) => {
@@ -98,10 +109,20 @@ window.MiniPi = (() => {
         const r = await fetch("/api/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId, txid, accessToken: auth.accessToken })
+          body: JSON.stringify({ paymentId, txid })
         });
         const data = await r.json().catch(() => ({}));
-        if (!r.ok || !data.ok) throw new Error(data.message || "Server completion thất bại");
+        if (!r.ok || !data.ok) {
+          const d = data?.diagnostic;
+          const detail = [
+            data?.message || "Server completion thất bại",
+            d?.upstreamStatus ? `HTTP Pi: ${d.upstreamStatus}` : "",
+            data?.requestId ? `Debug ID: ${data.requestId}` : ""
+          ].filter(Boolean).join(" | ");
+          if (statusEl) statusEl.textContent = "❌ COMPLETE: " + detail;
+          console.error("Pi completion debug", data);
+          throw new Error(detail);
+        }
         if (statusEl) statusEl.textContent = `✅ Thanh toán thành công. TX: ${txid}`;
       },
       onCancel: (paymentId) => {

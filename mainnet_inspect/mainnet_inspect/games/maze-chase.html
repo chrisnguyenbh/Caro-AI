@@ -1,0 +1,37 @@
+<!doctype html><html lang="vi"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Maze Chase</title><link rel="stylesheet" href="../assets/common.css">
+</head><body><main class="app-shell">
+<div class="game-head"><a class="back" href="../index.html">← MiniGame</a><div class="game-title">Maze Chase</div><div style="width:78px"></div></div>
+
+<section class="hud"><div class="stat"><small>SCORE</small><strong id="sc">0</strong></div><div class="stat"><small>HIGH</small><strong id="hi">0</strong></div><div class="stat"><small>ENERGY</small><strong id="left">0</strong></div><div class="stat"><small>LIVES</small><strong id="lives">3</strong></div></section>
+<section class="panel game-card"><canvas id="c" width="420" height="420" style="width:100%;border-radius:14px;background:#09030f"></canvas>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px">
+<div></div><button class="btn secondary mv" style="min-height:58px;font-size:24px" data-d="u">▲</button><div></div>
+<button class="btn secondary mv" style="min-height:58px;font-size:24px" data-d="l">◀</button><button class="btn" id="restart">↻</button><button class="btn secondary mv" style="min-height:58px;font-size:24px" data-d="r">▶</button>
+<div></div><button class="btn secondary mv" style="min-height:58px;font-size:24px" data-d="d">▼</button><div></div>
+</div><div class="help">Vuốt trên mê cung hoặc dùng D-pad lớn. Guardian đã được giảm tốc ở bản mobile để dễ điều khiển hơn.</div></section>
+
+</main><script>
+const c=document.getElementById('c'),x=c.getContext('2d'),S=21,N=20;
+const MAP=[
+"11111111111111111111","10000000010000000001","10111111010111111101","10000001010000000001",
+"11101001011101110101","10001000000001000101","10111101111111010101","10000001000000010101",
+"10111001011111010101","10001000010000000101","11101011110111110101","10001000000000000101",
+"10111101111111011101","10000001000001000001","10111111011101111101","10000000010000000001",
+"10111101110111110101","10000100000000000101","10100001111111000101","11111111111111111111"];
+let food=[],p,g,score=0,lives=3,hi=+localStorage.getItem('mg_maze_hi')||0,last=0,touch=null;
+const sc=document.getElementById('sc'),his=document.getElementById('hi'),left=document.getElementById('left'),li=document.getElementById('lives');his.textContent=hi;
+function reset(full=true){food=MAP.map((r,y)=>[...r].map((v,x)=>v==='0'));p={x:1,y:1};g={x:18,y:18};if(full){score=0;lives=3}hud()}
+function hud(){sc.textContent=score;li.textContent=lives;let n=food.flat().filter(Boolean).length;left.textContent=n;if(score>hi){hi=score;his.textContent=hi;localStorage.setItem('mg_maze_hi',hi)}}
+function open(a,b){return a>=0&&b>=0&&a<N&&b<N&&MAP[b][a]==='0'}
+function move(d){let dx=0,dy=0;if(d==='u')dy=-1;if(d==='d')dy=1;if(d==='l')dx=-1;if(d==='r')dx=1;let nx=p.x+dx,ny=p.y+dy;if(open(nx,ny)){p.x=nx;p.y=ny;if(food[ny][nx]){food[ny][nx]=false;score+=10}if(!food.flat().some(Boolean)){score+=500;reset(false)}hud();hit()}}
+function guardian(){let opts=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:g.x+dx,y:g.y+dy})).filter(q=>open(q.x,q.y));opts.sort((a,b)=>Math.abs(a.x-p.x)+Math.abs(a.y-p.y)-Math.abs(b.x-p.x)-Math.abs(b.y-p.y));if(opts.length){let pick=Math.random()<.58?opts[0]:opts[Math.floor(Math.random()*opts.length)];g=pick}hit()}
+function hit(){if(g.x===p.x&&g.y===p.y){lives--;if(lives<=0){alert('Game Over');reset(true)}else{p={x:1,y:1};g={x:18,y:18}}hud()}}
+function draw(){x.clearRect(0,0,420,420);for(let y=0;y<N;y++)for(let q=0;q<N;q++){if(MAP[y][q]==='1'){x.fillStyle='#402064';x.fillRect(q*S,y*S,S,S)}else if(food[y][q]){x.fillStyle='#ffe36d';x.beginPath();x.arc(q*S+S/2,y*S+S/2,2.2,0,6.28);x.fill()}}
+x.fillStyle='#5ce0ff';x.beginPath();x.arc(p.x*S+S/2,p.y*S+S/2,7,0,6.28);x.fill();x.fillStyle='#ff607d';x.beginPath();x.arc(g.x*S+S/2,g.y*S+S/2,7,0,6.28);x.fill()}
+function loop(t){if(t-last>520){guardian();last=t}draw();requestAnimationFrame(loop)}reset();loop();
+document.querySelectorAll('.mv').forEach(b=>b.onclick=()=>move(b.dataset.d));document.getElementById('restart').onclick=()=>reset(true);
+window.onkeydown=e=>{const m={ArrowUp:'u',ArrowDown:'d',ArrowLeft:'l',ArrowRight:'r'};if(m[e.key])move(m[e.key])};
+c.onpointerdown=e=>touch={x:e.clientX,y:e.clientY};c.onpointerup=e=>{if(!touch)return;let dx=e.clientX-touch.x,dy=e.clientY-touch.y;move(Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u'));touch=null};
+</script></body></html>

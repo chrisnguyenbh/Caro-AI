@@ -39,10 +39,7 @@
     <p>Thanh toán 0.01 Pi trên Mainnet để kiểm tra Step 10. Pi Wallet sẽ mở để bạn xác nhận giao dịch.</p>
     <div class="reward-row"><button class="btn good" id="payPi">Thanh toán 0.01 Pi</button></div>
     <div class="reward-status" id="paymentStatus">Chưa bắt đầu giao dịch.</div>
-    <div class="reward-status" id="paymentDebug" style="font-size:.82rem;opacity:.9;word-break:break-word"></div>
   </section>
-
-  <section class="panel reward-panel" style="font-size:12px"><b>Debug Approval v3</b><p style="margin-top:6px">Payment ID và HTTP status /approve sẽ được hiển thị khi Pi SDK gọi callback. Không hiển thị API key.</p></section>
 
   <section class="grid">
     <a class="panel game-link" href="games/core-shooter.html">
@@ -68,7 +65,7 @@
 <script src="assets/pi.js"></script>
 <script>
 const statusEl=document.getElementById("piStatus"),loginBtn=document.getElementById("piLogin");
-const payBtn=document.getElementById("payPi"), paymentStatus=document.getElementById("paymentStatus"), paymentDebug=document.getElementById("paymentDebug");
+const payBtn=document.getElementById("payPi"), paymentStatus=document.getElementById("paymentStatus");
 MiniPi.init(statusEl).then(()=>{const u=MiniPi.cachedUsername();if(u){statusEl.textContent="@"+u;loginBtn.textContent="Đăng nhập lại"}});
 loginBtn.onclick=()=>MiniPi.login(statusEl,loginBtn);
 document.getElementById("resetScores").onclick=()=>{
@@ -79,7 +76,7 @@ payBtn.onclick=async()=>{
   try{
     const auth=await MiniPi.ensureAuth(statusEl,loginBtn);
     if(!auth?.accessToken) throw new Error("Không lấy được Pi access token. Hãy đăng nhập lại.");
-    paymentStatus.textContent="Đang tạo khoản thanh toán…"; paymentDebug.textContent="Debug v3 • chờ Payment ID từ Pi SDK…";
+    paymentStatus.textContent="Đang tạo khoản thanh toán…";
     await MiniPi.createPayment({amount:0.01,memo:"MiniGame Step 10 Mainnet payment",metadata:{kind:"step10_u2a",app:"minigame"},statusEl:paymentStatus});
   }catch(e){console.error(e);paymentStatus.textContent="❌ "+(e?.message||"Không thể tạo thanh toán.");payBtn.disabled=false;}
 };

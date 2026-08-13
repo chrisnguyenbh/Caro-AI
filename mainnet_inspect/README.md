@@ -27,24 +27,3 @@ The production SDK is initialized with `sandbox: false`.
 Check `/api/health` and confirm `network: "Pi Mainnet"`, `sandbox: false`, `configured: true`.
 
 A2U reward code from the old Testnet build is intentionally not used for Step 10.
-
-## Debug Approval build
-This build intentionally exposes safe approval diagnostics in the UI and server response.
-It never displays or logs `PI_API_KEY`.
-
-When approval fails, note the `HTTP Pi` status and `Debug ID` shown in the payment status.
-The server log for `/api/approve` also records the payment ID, upstream status, and duration, but never the API key.
-
-Optional payment lookup after a failed attempt:
-`GET /api/payment?paymentId=...`
-
-Do not publish this debug build permanently. After the root cause is identified, replace `/api/approve` with the normal production handler and remove `/api/payment`.
-
-## Debug Approval v2
-This build normalizes accidental `Key ` prefixes and whitespace around PI_API_KEY, sends JSON content headers, and returns the upstream Pi HTTP status directly. Check `/api/config-check` for safe key metadata (never the key itself).
-
-
-## Debug v3
-- /api/pi-key-test kiểm tra API key Mainnet mà không lộ key.
-- /api/approve ghi paymentId, HTTP status, duration và response Pi.
-- Approval request khớp tài liệu Pi: POST /v2/payments/{payment_id}/approve với Authorization: Key <key> và không gửi request body.

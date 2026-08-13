@@ -1,5 +1,5 @@
 window.MiniPi = (() => {
-  const SANDBOX = false;
+  const SANDBOX = true;
   let ready = false;
   let currentAuth = null;
 
@@ -11,10 +11,10 @@ window.MiniPi = (() => {
     try {
       await window.Pi.init({ version: "2.0", sandbox: SANDBOX });
       ready = true;
-      if (statusEl) statusEl.textContent = "Pi SDK • Mainnet";
+      if (statusEl) statusEl.textContent = SANDBOX ? "Pi SDK • Sandbox" : "Pi SDK • Mainnet";
       return true;
     } catch (e) {
-      console.error("Pi.init failed", e);
+      console.error(e);
       if (statusEl) statusEl.textContent = "Pi SDK lỗi";
       return false;
     }
@@ -22,14 +22,14 @@ window.MiniPi = (() => {
 
   async function login(statusEl, buttonEl) {
     if (!ready || !window.Pi) {
-      if (statusEl) statusEl.textContent = "Hãy mở app trong Pi Browser";
+      if (statusEl) statusEl.textContent = "Hãy mở trong Pi Browser/Sandbox";
       return null;
     }
     if (buttonEl) buttonEl.disabled = true;
     try {
       const auth = await window.Pi.authenticate(
         ["username", "payments"],
-        onIncompletePaymentFound
+        handleIncompletePayment
       );
       currentAuth = auth;
       const username = auth?.user?.username || "Pioneer";
@@ -38,105 +38,107 @@ window.MiniPi = (() => {
       if (buttonEl) buttonEl.textContent = "Đã đăng nhập";
       return auth;
     } catch (e) {
-      console.error("Pi.authenticate failed", e);
+      console.error(e);
       if (statusEl) statusEl.textContent = "Chưa đăng nhập Pi";
       if (buttonEl) buttonEl.disabled = false;
       return null;
     }
   }
 
-  async function onIncompletePaymentFound(payment) {
-    if (!payment?.identifier) return;
-    console.log("Incomplete Pi payment found", payment);
-    const txid = payment?.transaction?.txid || null;
+  async function handleIncompletePayment(payment) {
+    console.warn("Pi incomplete payment found", payment);
+    const paymentId = payment?.identifier;
+    if (!paymentId) return;
+
+    // If the user has already submitted the transaction, the SDK may provide
+    // txid here. Complete it on the server so a stale payment does not block
+    // the next sandbox test.
+    const txid = payment?.transaction?.txid;
+    if (!txid) return;
+
     try {
-      if (txid) {
-        await fetch("/api/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId: payment.identifier, txid })
-        });
-      } else {
-        await fetch("/api/cancel", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId: payment.identifier })
-        });
-      }
+      await fetch("/api/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId, txid }),
+      });
     } catch (e) {
-      console.warn("Could not recover incomplete payment", e);
+      console.error("Unable to recover incomplete payment", e);
     }
   }
 
   function cachedUsername() {
     return localStorage.getItem("minigame_pi_username") || "";
   }
-  function getAuth() { return currentAuth; }
+
+  function getAuth() {
+    return currentAuth;
+  }
+
   async function ensureAuth(statusEl, buttonEl) {
     return currentAuth || login(statusEl, buttonEl);
   }
 
-  async function createPayment({ amount, memo, metadata, statusEl }) {
-    const auth = currentAuth;
-    if (!auth?.accessToken) throw new Error("Hãy đăng nhập Pi trước khi thanh toán.");
+  async function createTestPayment({ amount = 0.01, memo = "MiniGame Hub Test Payment" } = {}) {
+    if (!ready || !window.Pi) throw new Error("Pi SDK chưa sẵn sàng. Hãy mở app trong Pi Browser Sandbox.");
+    if (!currentAuth) throw new Error("Hãy đăng nhập Pi trước.");
 
-    const paymentData = { amount, memo, metadata };
-    const paymentCallbacks = {
-      onReadyForServerApproval: async (paymentId) => {
-        if (statusEl) statusEl.textContent = "Đang chờ server duyệt giao dịch…";
-        const r = await fetch("/api/approve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || !data.ok) {
-          const d = data?.diagnostic;
-          const detail = [
-            data?.message || "Server approval thất bại",
-            d?.upstreamStatus ? `HTTP Pi: ${d.upstreamStatus}` : "",
-            d?.upstreamStatusText || "",
-            data?.requestId ? `Debug ID: ${data.requestId}` : ""
-          ].filter(Boolean).join(" | ");
-          if (statusEl) statusEl.textContent = "❌ APPROVE: " + detail;
-          console.error("Pi approval debug", data);
-          throw new Error(detail);
-        }
-        if (statusEl) statusEl.textContent = "Đã duyệt. Hãy xác nhận giao dịch trong Pi Wallet…";
+    const paymentData = {
+      amount,
+      memo,
+      metadata: {
+        kind: "minigame_u2a_test",
+        purpose: "Pi Developer Checklist - Process a Transaction on the App",
+        createdAt: new Date().toISOString(),
       },
-      onReadyForServerCompletion: async (paymentId, txid) => {
-        if (statusEl) statusEl.textContent = "Đang xác nhận giao dịch trên Pi Mainnet…";
-        const r = await fetch("/api/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId, txid })
-        });
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || !data.ok) {
-          const d = data?.diagnostic;
-          const detail = [
-            data?.message || "Server completion thất bại",
-            d?.upstreamStatus ? `HTTP Pi: ${d.upstreamStatus}` : "",
-            data?.requestId ? `Debug ID: ${data.requestId}` : ""
-          ].filter(Boolean).join(" | ");
-          if (statusEl) statusEl.textContent = "❌ COMPLETE: " + detail;
-          console.error("Pi completion debug", data);
-          throw new Error(detail);
-        }
-        if (statusEl) statusEl.textContent = `✅ Thanh toán thành công. TX: ${txid}`;
-      },
-      onCancel: (paymentId) => {
-        console.warn("Pi payment cancelled", paymentId);
-        if (statusEl) statusEl.textContent = "Giao dịch đã được hủy.";
-      },
-      onError: (error, payment) => {
-        console.error("Pi payment error", error, payment);
-        if (statusEl) statusEl.textContent = "❌ Pi payment error: " + (error?.message || error || "Unknown error");
-      }
     };
 
-    return window.Pi.createPayment(paymentData, paymentCallbacks);
+    return window.Pi.createPayment(paymentData, {
+      onReadyForServerApproval: async (paymentId) => {
+        console.log("onReadyForServerApproval", paymentId);
+        const response = await fetch("/api/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || data.error || "Server approval failed.");
+        }
+        return data;
+      },
+
+      onReadyForServerCompletion: async (paymentId, txid) => {
+        console.log("onReadyForServerCompletion", paymentId, txid);
+        const response = await fetch("/api/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId, txid }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || data.error || "Server completion failed.");
+        }
+        return data;
+      },
+
+      onCancel: (paymentId) => {
+        console.log("Pi payment cancelled", paymentId);
+      },
+
+      onError: (error, payment) => {
+        console.error("Pi payment error", error, payment);
+      },
+    });
   }
 
-  return { init, login, ensureAuth, getAuth, cachedUsername, createPayment, SANDBOX };
+  return {
+    init,
+    login,
+    ensureAuth,
+    getAuth,
+    cachedUsername,
+    createTestPayment,
+    SANDBOX,
+  };
 })();
