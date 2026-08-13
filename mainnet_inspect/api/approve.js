@@ -19,7 +19,9 @@ export default async function handler(req, res) {
     return json(res, 405, { ok:false, debug:true, requestId:rid, error:"method_not_allowed" });
   }
 
-  const apiKey = process.env.PI_API_KEY;
+  const rawApiKey = process.env.PI_API_KEY;
+  // Accept either the raw portal key or a value accidentally copied with the `Key ` prefix.
+  const apiKey = rawApiKey ? rawApiKey.trim().replace(/^Key\s+/i, "") : "";
   if (!apiKey) {
     return json(res, 503, {
       ok:false, debug:true, requestId:rid,
@@ -51,7 +53,8 @@ export default async function handler(req, res) {
         method: "POST",
         headers: {
           "Authorization": `Key ${apiKey}`,
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "Content-Type": "application/json"
         },
         signal: controller.signal
       });
@@ -75,13 +78,14 @@ export default async function handler(req, res) {
     }));
 
     if (!r.ok) {
-      return json(res, 502, {
+      return json(res, r.status, {
         ok:false,
         debug:true,
         requestId:rid,
         error:"pi_approval_failed",
         message: data?.error || data?.message || text || "Pi approval failed",
         diagnostic: {
+          apiKeyFormat: /^Key\s+/i.test(rawApiKey || "") ? "prefixed_key_normalized" : "raw_key",
           upstreamStatus: r.status,
           upstreamStatusText: r.statusText,
           durationMs: Date.now() - startedPi,
@@ -124,6 +128,7 @@ export default async function handler(req, res) {
         ? "Pi Mainnet API did not answer within 10 seconds."
         : (e?.message || "Unexpected server error"),
       diagnostic:{
+        apiKeyFormat: /^Key\s+/i.test(rawApiKey || "") ? "prefixed_key_normalized" : "raw_key",
         endpoint:"/v2/payments/{payment_id}/approve",
         paymentId,
         durationMs:Date.now() - started

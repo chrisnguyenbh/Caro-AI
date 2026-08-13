@@ -39,3 +39,6 @@ Optional payment lookup after a failed attempt:
 `GET /api/payment?paymentId=...`
 
 Do not publish this debug build permanently. After the root cause is identified, replace `/api/approve` with the normal production handler and remove `/api/payment`.
+
+## Debug Approval v2
+This build normalizes accidental `Key ` prefixes and whitespace around PI_API_KEY, sends JSON content headers, and returns the upstream Pi HTTP status directly. Check `/api/config-check` for safe key metadata (never the key itself).

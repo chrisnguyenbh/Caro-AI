@@ -1,0 +1,2 @@
+function json(res,status,body){res.status(status);res.setHeader("Content-Type","application/json; charset=utf-8");res.setHeader("Cache-Control","no-store");res.end(JSON.stringify(body));}
+export default function handler(req,res){if(req.method!=="GET")return json(res,405,{ok:false,error:"method_not_allowed"});const raw=process.env.PI_API_KEY||"";return json(res,200,{ok:true,network:"Pi Mainnet",sandbox:false,configured:Boolean(raw.trim()),keyLength:raw.trim().replace(/^Key\s+/i,"").length,keyWasPrefixed:/^Key\s+/i.test(raw.trim()),note:"Key value is never returned."});}
