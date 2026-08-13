@@ -42,3 +42,9 @@ Do not publish this debug build permanently. After the root cause is identified,
 
 ## Debug Approval v2
 This build normalizes accidental `Key ` prefixes and whitespace around PI_API_KEY, sends JSON content headers, and returns the upstream Pi HTTP status directly. Check `/api/config-check` for safe key metadata (never the key itself).
+
+
+## Debug v3
+- /api/pi-key-test kiểm tra API key Mainnet mà không lộ key.
+- /api/approve ghi paymentId, HTTP status, duration và response Pi.
+- Approval request khớp tài liệu Pi: POST /v2/payments/{payment_id}/approve với Authorization: Key <key> và không gửi request body.

@@ -83,7 +83,7 @@ window.MiniPi = (() => {
     const paymentData = { amount, memo, metadata };
     const paymentCallbacks = {
       onReadyForServerApproval: async (paymentId) => {
-        if (statusEl) statusEl.textContent = "Đang chờ server duyệt giao dịch…";
+        if (statusEl) statusEl.textContent = `Đang duyệt Payment ID: ${paymentId}`;
         const r = await fetch("/api/approve", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

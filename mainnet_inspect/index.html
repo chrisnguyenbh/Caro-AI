@@ -42,6 +42,8 @@
     <div class="reward-status" id="paymentDebug" style="font-size:.82rem;opacity:.9;word-break:break-word"></div>
   </section>
 
+  <section class="panel reward-panel" style="font-size:12px"><b>Debug Approval v3</b><p style="margin-top:6px">Payment ID và HTTP status /approve sẽ được hiển thị khi Pi SDK gọi callback. Không hiển thị API key.</p></section>
+
   <section class="grid">
     <a class="panel game-link" href="games/core-shooter.html">
       <div class="cover">🎯</div><div class="game-meta"><b>Elemental Core</b><span>Bắn đúng màu vào các lõi đang xoay.</span><span class="tag">Action</span></div>
@@ -77,7 +79,7 @@ payBtn.onclick=async()=>{
   try{
     const auth=await MiniPi.ensureAuth(statusEl,loginBtn);
     if(!auth?.accessToken) throw new Error("Không lấy được Pi access token. Hãy đăng nhập lại.");
-    paymentStatus.textContent="Đang tạo khoản thanh toán…";
+    paymentStatus.textContent="Đang tạo khoản thanh toán…"; paymentDebug.textContent="Debug v3 • chờ Payment ID từ Pi SDK…";
     await MiniPi.createPayment({amount:0.01,memo:"MiniGame Step 10 Mainnet payment",metadata:{kind:"step10_u2a",app:"minigame"},statusEl:paymentStatus});
   }catch(e){console.error(e);paymentStatus.textContent="❌ "+(e?.message||"Không thể tạo thanh toán.");payBtn.disabled=false;}
 };
