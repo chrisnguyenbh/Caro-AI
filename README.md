@@ -1,24 +1,17 @@
-# MiniGame Hub — Pi Mainnet / Step 10 Debug
+# MiniGame Hub — Entertainment v1 (Pi Mainnet)
 
-This package is arranged for Vercel with `api/` at the repository root.
+## 5 game
+- Cờ Tỉ Phú — bản giao diện mới, Game Coin nội bộ, mua đất/xây cấp.
+- Dungeon Battle
+- Caro
+- Tìm điểm khác nhau
+- BBTAN
 
-## Mainnet U2A flow
+## Mô hình
+- Pi Mainnet U2A transaction hiện tại được giữ nguyên.
+- Game Coin chỉ là tiền ảo nội bộ dùng cho gameplay.
+- Không có chức năng đổi Game Coin thành Pi.
+- Không yêu cầu Secret Seed/passphrase của người chơi.
 
-1. `Pi.init({ version: "2.0", sandbox: false })`
-2. `Pi.authenticate(["username", "payments"], ...)`
-3. `Pi.createPayment(...)`
-4. `onReadyForServerApproval(paymentId)` -> `POST /api/approve`
-5. Pi Wallet signs the transaction
-6. `onReadyForServerCompletion(paymentId, txid)` -> `POST /api/complete`
-
-## Debug routes
-
-- `GET /api/health`
-- `GET /api/pi-key-test` — tests whether the configured key is accepted by Pi without exposing it.
-- `GET /api/payment?paymentId=...` — fetches one payment using the server key.
-
-The `/api/approve` response includes `debugId`, `paymentId`, Pi HTTP status, response body, and duration. Never put the API key or wallet seed in frontend code or GitHub.
-
-## Vercel
-
-Set `PI_API_KEY` in Vercel Production Environment Variables to the **Mainnet** API key for this app, then redeploy.
+## Deploy
+Giữ các Environment Variables Pi hiện tại của project đang chạy. Không thay API key/Secret Seed chỉ để đổi giao diện game.
